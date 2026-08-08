@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-
+  import { languages } from '$lib/config/language';
+	import LangSelector from '$lib/components/LangSelector.svelte';
   type MessageRole = 'user' | 'bot';
 
   interface ChatMessage {
@@ -18,9 +19,10 @@
   // Sidebar State Management
   let isSidebarOpen = $state(true);
 
-  // Default languages to send to backend (can be dynamically bound to UI later)
-  let currentUserLang = 'English';
-  let currentDestLang = 'Assamese';
+  let currentUserLang = $state('English');
+  let currentDestLang = $state('Assamese');
+  let showLanguageMenu = $state(false);
+
 
   onMount(() => {
     // Automatically close sidebar on mobile devices upon loading
@@ -50,7 +52,9 @@
         },
         body: JSON.stringify({
           query: userMessage,
-          language: 'kha'
+          language: languages.find(
+            lang => lang.name === currentDestLang
+          )?.code
         })
       });
 
@@ -149,7 +153,7 @@
               </svg>
             </div>
           </div>
-          <span class="font-semibold text-base tracking-wide text-white">WhispAI</span>
+          <span class="font-semibold text-base tracking-wide text-white">NE Chat</span>
         </div>
         <div class="flex items-center gap-2 text-gray-400">
           <button on:click={() => comingSoon('Search Sidebar')} class="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-[#16161a]" aria-label="Search">
@@ -231,10 +235,29 @@
           </button>
         {/if}
 
-        <button on:click={() => comingSoon('Model Selector')} class="flex items-center gap-2 hover:text-white transition-colors text-sm font-medium text-gray-300">
-          NodeAI-1
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
+        {#if isChatting}
+          <button
+            on:click={() => isChatting = false}
+            class="flex items-center gap-2 hover:text-white transition-colors text-sm font-medium text-gray-300"
+            aria-label="Back to home"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+
+            Back
+          </button>          
+        {/if}
+
       </div>
 
       <!-- Right side header -->
@@ -246,14 +269,14 @@
           <button on:click={() => comingSoon('Core')} class="hover:text-white transition-colors">Core</button>
         </nav>
         
-        <div class="flex items-center gap-4 ml-2">
+        <!-- <div class="flex items-center gap-4 ml-2">
           <button on:click={() => comingSoon('Theme Toggle')} class="p-2 rounded-full bg-[#16161a] border border-[#27272a] text-gray-400 hover:text-white transition-colors" aria-label="Toggle Theme">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
           </button>
           <button on:click={() => comingSoon('Profile Menu')} class="rounded-full overflow-hidden border border-[#27272a]">
             <img src="https://i.pravatar.cc/150?img=11" class="w-8 h-8 object-cover bg-gray-800 block" alt="Current User" />
           </button>
-        </div>
+        </div> -->
       </div>
     </header>
 
@@ -294,7 +317,7 @@
               class="w-full bg-transparent border-none outline-none text-gray-200 px-3 py-3 text-[15px] placeholder-gray-500 mb-2 focus:ring-0" 
             />
             <div class="flex items-center justify-between px-1">
-              <div class="flex items-center gap-2">
+              <!-- <div class="flex items-center gap-2">
                 <button on:click={() => comingSoon('Web Search')} class="flex items-center gap-2 bg-[#1a1a1f] hover:bg-[#27272a] text-gray-300 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors border border-[#27272a]">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                   Search
@@ -306,14 +329,13 @@
                 <button on:click={() => comingSoon('More Options')} class="flex items-center justify-center w-[30px] h-[30px] bg-[#1a1a1f] hover:bg-[#27272a] text-gray-400 rounded-lg transition-colors border border-[#27272a]">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                 </button>
-              </div>
-              <div class="flex items-center gap-2">
-                <button on:click={() => comingSoon('Voice Input')} class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors bg-[#1a1a1f] rounded-lg border border-[#27272a]">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-                </button>
-                <button on:click={handleSend} disabled={!inputValue.trim()} class="w-8 h-8 {inputValue.trim() ? 'bg-white text-black hover:bg-gray-200' : 'bg-gray-700 text-gray-400'} rounded-full flex items-center justify-center transition-colors shadow-md">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-                </button>
+              </div> -->
+              <div class="flex items-end gap-2 relative">
+                <LangSelector 
+                  currentDestLang={currentDestLang}
+                  onLanguageChange={(languages) => currentDestLang = languages}
+                />
+                
               </div>
             </div>
           </div>
@@ -403,7 +425,7 @@
             class="w-full bg-transparent border-none outline-none text-gray-200 px-3 py-3 text-[15px] placeholder-gray-500 mb-2 focus:ring-0" 
           />
           <div class="flex items-center justify-between px-1">
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
               <button on:click={() => comingSoon('Web Search')} class="flex items-center gap-2 bg-[#1a1a1f] hover:bg-[#27272a] text-gray-300 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors border border-[#27272a]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 Search
@@ -415,14 +437,12 @@
               <button on:click={() => comingSoon('More Options')} class="flex items-center justify-center w-[30px] h-[30px] bg-[#1a1a1f] hover:bg-[#27272a] text-gray-400 rounded-lg transition-colors border border-[#27272a]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
               </button>
-            </div>
+            </div> -->
             <div class="flex items-center gap-2">
-              <button on:click={() => comingSoon('Voice Input')} class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors bg-[#1a1a1f] rounded-lg border border-[#27272a]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-              </button>
-              <button on:click={handleSend} disabled={!inputValue.trim()} class="w-8 h-8 {inputValue.trim() ? 'bg-white text-black hover:bg-gray-200' : 'bg-gray-700 text-gray-400'} rounded-full flex items-center justify-center transition-colors shadow-md">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-              </button>
+                              <LangSelector 
+                  currentDestLang={currentDestLang}
+                  onLanguageChange={(languages) => currentDestLang = languages}
+                />
             </div>
           </div>
         </div>
