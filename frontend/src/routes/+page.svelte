@@ -50,21 +50,27 @@
         },
         body: JSON.stringify({
           query: userMessage,
-          userlang: currentUserLang,
-          destlang: currentDestLang
+          language: 'kha'
         })
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Backend returned ${response.status}`);
       }
 
       const data = await response.json();
-      addMessage('bot', data.reply);
-      
+
+      console.log('Backend response:', data);
+
+      addMessage('bot', data.answer);
+
     } catch (error) {
-      console.error("Error communicating with backend:", error);
-      addMessage('bot', "Sorry, I couldn't connect to the server. Please ensure the backend is running.");
+      console.error('Error communicating with backend:', error);
+
+      addMessage(
+        'bot',
+        "Sorry, I couldn't connect to the server. Please ensure the backend is running."
+      );
     }
   }
 

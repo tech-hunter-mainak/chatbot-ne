@@ -1,2 +1,6 @@
+__pycache__/
+*.pyc
 .env
-.env.*
+/venv
+database/vector_db/*
+!database/vector_db/.gitkeep
