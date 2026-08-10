@@ -1,0 +1,31 @@
+Here is a concise summary of the text in plain text format:
+
+Mizoram at a Glance
+--------------------
+
+* Location: Latitude 21°58' N to 24°35' N, Longitude 92°15' E to 93°29' E
+* Area: 21,087 Sq Kms
+* Border with Assam (123 km), Tripura (277 km), Manipur (95 km)
+* International border with Myanmar (404 km) and Bangladesh (318 km)
+* Temperature: 11°C - 21°C in winter, 20°C - 30°C in summer
+* Average rainfall: 250 per annum
+* Population: 10,91,014 (2011 Census), 52 male per 100 female
+* Capital: Aizawl
+* Literacy rate: 91.85%
+* Highest point: Phawngpui (Blue Mountain) at 2,210 m
+* State animal: Serow (Saza)
+* State bird: Hume's Bartailed Pheasant (Vavu)
+* State flower: Dancing Girl (Aiting)
+* State tree: Mesual Ferrea/Nahar (Herhse)
+
+District-wise Population (2011 Census):
+--------------------------------------
+
+* Mamit: 28,400, density 41190/ Sq Km
+* Kolasib: 42,456, density 40598/ Sq Km
+* Aizawl: 201,072, density 202982/ Sq Km
+* Champhai: 63,299, density 62071/ Sq Km
+* Serchhip: 32,824, density 32051/ Sq Km
+* Lunglei: 79,252, density 74842/ Sq Km
+* Lawngtlai: 60,379, density 57065/ Sq Km
+* Saiha: 28,490, density 27876/ Sq Km

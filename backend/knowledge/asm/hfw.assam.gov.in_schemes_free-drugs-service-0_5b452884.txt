@@ -1,0 +1,9 @@
+**Free Drugs Service Scheme in Assam**
+
+The "Free Drugs Service" scheme, launched by National Health Mission Assam in 2013-14, aims to provide essential drugs and surgicals free of cost at Government Health Institutions. The scheme includes:
+
+* A State Essential Drug List (EDL) with 731 items, notified annually by the Government of Assam.
+* Procurement of generic drugs through tenders based on EDL, stored in warehouses using a "first expiry, first out" system.
+* A Drugs Monitoring System, including:
+	+ An online monitoring system for management of essential drugs developed by NHM Assam.
+	+ Collaboration with CDAC for total drugs-supply chain management.

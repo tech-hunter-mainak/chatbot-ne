@@ -15,6 +15,10 @@ SUPPORTED_LANGUAGES = {
     "kha": "Khasi",
     "grt": "Garo",
     "lus": "Mizo",
+    "nag": "Nagamese",
+    "trp": "Kokborok",
+    "ccp": "Chakma",
+    "wao": "Wancho"
 }
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")

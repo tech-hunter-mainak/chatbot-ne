@@ -1,0 +1,29 @@
+Here is a concise summary of the Chief Minister's Free Diagnostic Services scheme:
+
+**Overview**
+
+* Aim: Ensure availability of minimum set of diagnostics services at health institutions.
+* Objective: Reduce out-of-pocket expenditure on diagnostic tests.
+
+**Services Provided**
+
+* CT Scan:
+	+ 28 centers established at 28 district hospitals (24 operational, 4 soon to be operational).
+	+ Tele Radiology for reporting and image transmission.
+* X-Ray:
+	+ All government health institution machines connected through Tele Radiology.
+	+ Total of 130 health institutions selected.
+* Laboratory Services:
+	+ Free services provided at DH/CHC/PHC through Hub and Spoke model.
+	+ Sample analysis and report communication within 24 hours for normal cases, 3 hours for emergency cases.
+
+**Benefits**
+
+* All citizens, irrespective of APL/BPL status, eligible for free diagnostics services.
+
+**Implementation**
+
+* Programmed through M/S HLL Lifecare Ltd.
+* Installation completed in 27 locations (soon to be operational).
+
+Note: This summary only includes relevant and concise information from the original page.
