@@ -1,0 +1,33 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    OLLAMA_HOST=http://host.docker.internal:11434
+
+WORKDIR /app
+
+# System dependencies for faiss-cpu (libgomp1) and PDF/OCR utilities (pytesseract, pdf2image)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    tesseract-ocr \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CPU-only PyTorch first to avoid pulling large CUDA dependencies, then remaining requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy backend source, knowledge base, and scripts
+COPY . .
+
+# Ensure runtime directories exist
+RUN mkdir -p /app/database/vector_db /app/memories/session
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
