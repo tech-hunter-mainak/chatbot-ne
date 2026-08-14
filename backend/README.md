@@ -60,7 +60,7 @@ Re-run this any time you add/change files in `knowledge/`.
 ## Run
 
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Use
@@ -87,3 +87,5 @@ Response:
 - `paraphrase-multilingual-MiniLM-L12-v2` is a general multilingual model, so retrieval may be weak for rare languages. Better model by changing `EMBEDDING_MODEL` in `.env`.
 - Add more languages by creating `knowledge/<code>/`, adding the code to
   `SUPPORTED_LANGUAGES` in `app/config.py`, then rebuilding the index.
+
+Use ```pnpm run dev --host```

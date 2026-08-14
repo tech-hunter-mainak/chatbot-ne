@@ -106,7 +106,7 @@
     addMessage('bot', 'Thinking...');
 
     try {
-      const response = await fetch('http://192.168.137.1:8000/chat', {
+      const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
