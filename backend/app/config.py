@@ -18,7 +18,9 @@ SUPPORTED_LANGUAGES = {
     "nag": "Nagamese",
     "trp": "Kokborok",
     "ccp": "Chakma",
-    "wao": "Wancho"
+    "wao": "Wancho",
+    "brx": "Boro",
+    "en": "English"
 }
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
@@ -27,6 +29,7 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L
 # `ollama pull llama3.2` (or any model you prefer) before first run.
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
+NLLB_MODEL = os.getenv("NLLB_MODEL", "facebook/nllb-200-distilled-600M")
 
 CHUNK_SIZE = 500       # chars
 CHUNK_OVERLAP = 80

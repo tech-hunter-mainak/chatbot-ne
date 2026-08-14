@@ -6,3 +6,13 @@ numpy
 python-dotenv
 requests
 pydantic
+transformers
+sentencepiece
+torch
+transformers
+sentencepiece
+torch
+PyPDF2
+pdfplumber
+pytesseract
+pdf2image

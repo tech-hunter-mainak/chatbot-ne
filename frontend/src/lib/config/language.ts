@@ -5,6 +5,5 @@ export const languages = [
   { name: 'Garo', code: 'grt' },
   { name: 'Mizo', code: 'lus' },
   { name: 'Bodo', code: 'brx' },
-  { name: 'Nagamese', code: 'nag' },
-  { name: 'Manipuri', code: 'mni' }
+  { name: 'Nagamese', code: 'nag' }
 ];

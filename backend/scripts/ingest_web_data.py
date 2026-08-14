@@ -16,6 +16,41 @@ from typing import Iterable
 from urllib.parse import urljoin, urlparse
 
 import requests
+from io import BytesIO
+try:
+    from PyPDF2 import PdfReader
+except Exception:
+    PdfReader = None
+try:
+    import pdfplumber
+except Exception:
+    pdfplumber = None
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+else:
+    # configure tesseract binary if not on PATH (common Windows locations)
+    import os
+    for c in [r"C:\Program Files\Tesseract-OCR\tesseract.exe", r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"]:
+        if os.path.exists(c):
+            try:
+                pytesseract.pytesseract.tesseract_cmd = c
+                break
+            except Exception:
+                pass
+try:
+    from pdf2image import convert_from_bytes
+except Exception:
+    convert_from_bytes = None
+try:
+    from PIL import Image
+except Exception:
+    Image = None
+try:
+    import pypdfium2 as pdfium
+except Exception:
+    pdfium = None
 from dotenv import load_dotenv
 from html.parser import HTMLParser
 
@@ -84,9 +119,131 @@ def fetch_url(url: str, timeout: int = 15) -> str | None:
         response = requests.get(url, timeout=timeout, headers={"User-Agent": "Mozilla/5.0"})
         response.raise_for_status()
         content_type = response.headers.get("Content-Type", "")
-        if "text/html" not in content_type:
-            return None
-        return extract_text_from_html(response.text)
+        # handle HTML
+        if "text/html" in content_type:
+            return extract_text_from_html(response.text)
+
+        # handle images (perform OCR)
+        if content_type.startswith("image/"):
+            # try OCR on image bytes
+            if pytesseract is None or Image is None:
+                return None
+            try:
+                img = Image.open(BytesIO(response.content))
+                text = pytesseract.image_to_string(img)
+                return text.strip() if text and text.strip() else None
+            except Exception:
+                return None
+
+        # handle PDF
+        if "application/pdf" in content_type or url.lower().endswith(".pdf"):
+            texts: list[str] = []
+
+            # Try PyPDF2 extraction first
+            if PdfReader is not None:
+                try:
+                    try:
+                        reader = PdfReader(response.content)
+                    except Exception:
+                        from io import BytesIO
+
+                        reader = PdfReader(BytesIO(response.content))
+
+                    for page in reader.pages:
+                        try:
+                            page_text = page.extract_text() or ""
+                        except Exception:
+                            page_text = ""
+                        if page_text:
+                            texts.append(page_text)
+                except Exception:
+                    texts = []
+
+            # If PyPDF2 yielded nothing useful, try pdfplumber if available
+            if (not texts or all(not t.strip() for t in texts)) and pdfplumber is not None:
+                try:
+                    from io import BytesIO
+
+                    with pdfplumber.open(BytesIO(response.content)) as pdf:
+                        for p in pdf.pages:
+                            try:
+                                t = p.extract_text() or ""
+                            except Exception:
+                                t = ""
+                            if t:
+                                texts.append(t)
+                except Exception:
+                    pass
+
+            full_text = "\n\n".join(t for t in texts if t)
+
+            # If no textual PDF content was found, attempt OCR conversion to images
+            if (not full_text.strip()) and pytesseract is not None:
+                # Try pypdfium2 first (doesn't require poppler and worked reliably)
+                if pdfium is not None and Image is not None:
+                    try:
+                        from tempfile import NamedTemporaryFile
+
+                        with NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+                            tf.write(response.content)
+                            tmp_path = tf.name
+                        doc = pdfium.PdfDocument(tmp_path)
+                        ocr_texts = []
+                        page_count = min(5, len(doc))
+                        for i in range(page_count):
+                            try:
+                                page = doc.get_page(i)
+                                if hasattr(page, 'render_topil'):
+                                    pil = page.render_topil(scale=2)
+                                else:
+                                    renderer = page.render(scale=2)
+                                    if hasattr(renderer, 'to_pil'):
+                                        pil = renderer.to_pil()
+                                    elif hasattr(renderer, 'as_pil'):
+                                        pil = renderer.as_pil()
+                                    else:
+                                        pil = None
+                                if pil is not None:
+                                    t = pytesseract.image_to_string(pil)
+                                else:
+                                    t = ""
+                                try:
+                                    page.close()
+                                except Exception:
+                                    pass
+                            except Exception:
+                                t = ""
+                            if t:
+                                ocr_texts.append(t)
+                        try:
+                            doc.close()
+                        except Exception:
+                            pass
+                        full_text = "\n\n".join(t for t in ocr_texts if t)
+                    except Exception:
+                        full_text = ""
+
+                # If pypdfium2 didn't produce text, try pdf2image/poppler next
+                if (not full_text.strip()) and convert_from_bytes is not None and Image is not None:
+                    try:
+                        images = convert_from_bytes(response.content)
+                        ocr_texts: list[str] = []
+                        for img in images:
+                            try:
+                                if not isinstance(img, Image.Image):
+                                    img = Image.fromarray(img)
+                                t = pytesseract.image_to_string(img)
+                            except Exception:
+                                t = ""
+                            if t:
+                                ocr_texts.append(t)
+                        full_text = "\n\n".join(t for t in ocr_texts if t)
+                    except Exception:
+                        full_text = ""
+
+            return full_text if full_text.strip() else None
+
+        return None
     except requests.RequestException:
         return None
 
@@ -221,10 +378,42 @@ def ingest_urls(lang_dir: Path, urls: Iterable[str], max_pages: int | None = Non
         text = fetch_url(url)
         if not text:
             continue
+        # always save raw extracted text
+        source = safe_filename(url)
+        raw_name = source.replace('.txt', '_raw.txt')
+        raw_path = lang_dir / raw_name
+        raw_path.write_text(text, encoding='utf-8')
+        # determine whether to summarize via LLM (caller may pass no-summary)
+        # by default, keep summarization enabled
+        try:
+            no_summary_flag = getattr(ingest_urls, '_no_summary_flag')
+        except Exception:
+            no_summary_flag = False
+        if no_summary_flag:
+            saved_files.append(raw_path)
+            continue
+
         relevant = summarize_large_text(text, url, lang_dir.name)
-        if not relevant:
-            relevant = text
-        saved_files.append(save_text(lang_dir, url, relevant))
+
+        def is_summary_valid(orig: str, summ: str) -> bool:
+            if not summ:
+                return False
+            s = summ.strip()
+            if len(s) < 50:
+                return False
+            low = s.lower()
+            for p in ("i think", "i'm", "maybe", "don't know", "cannot", "can't"):
+                if p in low:
+                    return False
+            return True
+
+        if relevant and is_summary_valid(text, relevant):
+            # save summary into the canonical filename
+            summary_path = save_text(lang_dir, url, relevant)
+            saved_files.append(summary_path)
+        else:
+            # fallback: keep only raw text (already saved)
+            saved_files.append(raw_path)
     return saved_files
 
 
@@ -236,6 +425,7 @@ def main() -> None:
     parser.add_argument("--query", help="DuckDuckGo search query to discover pages")
     parser.add_argument("--max-pages", type=int, default=0, help="Maximum number of pages to ingest (0 = no limit)")
     parser.add_argument("--max-results", type=int, default=5, help="Maximum search results to use for query ingestion")
+    parser.add_argument("--no-summary", action="store_true", help="Do not call the LLM to summarize pages; save raw text only")
     args = parser.parse_args()
 
     base_dir = Path(__file__).resolve().parent.parent
@@ -259,6 +449,8 @@ def main() -> None:
     max_pages = args.max_pages if args.max_pages > 0 else None
     page_count = args.max_pages if args.max_pages > 0 else "all"
     print(f"Ingesting up to {page_count} pages into {lang_dir}...")
+    # pass no-summary flag into ingest_urls via attribute (simple closure-less approach)
+    ingest_urls._no_summary_flag = args.no_summary
     saved = ingest_urls(lang_dir, urls, max_pages=max_pages)
 
     if not saved:

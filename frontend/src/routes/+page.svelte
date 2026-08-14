@@ -15,6 +15,25 @@
   let messages = $state<ChatMessage[]>([]);
   let isChatting = $state(false);
   let nextMessageId = 1;
+  let sessionId = $state('');
+
+  // Cookie helpers (module scope)
+  function getCookie(name: string) {
+    if (typeof document === 'undefined') return null;
+    const v = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+    return v ? decodeURIComponent(v[1]) : null;
+  }
+
+  function setCookie(name: string, value: string, days = 30) {
+    if (typeof document === 'undefined') return;
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+  }
+
+  function deleteCookie(name: string) {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${name}=; Max-Age=0; path=/`;
+  }
   
   // Sidebar State Management
   let isSidebarOpen = $state(true);
@@ -29,10 +48,48 @@
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       isSidebarOpen = false;
     }
+
+    // Load sessionId and messages from cookies (fallback to localStorage)
+    try {
+      const cookieSession = getCookie('sessionId');
+      if (cookieSession) {
+        sessionId = cookieSession;
+      } else {
+        const stored = localStorage.getItem('sessionId');
+        if (stored) {
+          sessionId = stored;
+        } else if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          sessionId = crypto.randomUUID();
+        } else {
+          sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+        try { setCookie('sessionId', sessionId); } catch (e) {}
+        try { localStorage.setItem('sessionId', sessionId); } catch (e) {}
+      }
+
+      const chatCookie = getCookie('chat_history');
+      if (chatCookie) {
+        try {
+          const parsed = JSON.parse(chatCookie);
+          if (Array.isArray(parsed)) {
+            messages = parsed.map((m: any) => ({ id: nextMessageId++, ...m }));
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
   });
 
   function addMessage(role: MessageRole, content: string) {
     messages = [...messages, { id: nextMessageId++, role, content }];
+    // persist to cookie
+    try {
+      const toSave = messages.map(m => ({ role: m.role, content: m.content }));
+      setCookie('chat_history', JSON.stringify(toSave));
+    } catch (e) {}
   }
 
   // UPDATED: Now makes an actual API call to FastAPI backend
@@ -44,8 +101,12 @@
     inputValue = '';
     isChatting = true;
 
+    // show a temporary placeholder while the backend is processing
+    const thinkingId = nextMessageId;
+    addMessage('bot', 'Thinking...');
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      const response = await fetch('http://192.168.137.1:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -54,7 +115,8 @@
           query: userMessage,
           language: languages.find(
             lang => lang.name === currentDestLang
-          )?.code
+          )?.code,
+          session_id: sessionId
         })
       });
 
@@ -66,16 +128,50 @@
 
       console.log('Backend response:', data);
 
-      addMessage('bot', data.answer);
+      // replace the thinking placeholder with the actual bot answer
+      messages = messages.map(m => m.id === thinkingId ? { ...m, content: data.answer } : m);
+      // persist messages to cookie
+      try {
+        const toSave = messages.map(m => ({ role: m.role, content: m.content }));
+        setCookie('chat_history', JSON.stringify(toSave));
+      } catch (e) {}
 
     } catch (error) {
       console.error('Error communicating with backend:', error);
 
-      addMessage(
-        'bot',
-        "Sorry, I couldn't connect to the server. Please ensure the backend is running."
-      );
+      messages = messages.map(m => m.id === thinkingId ? { ...m, content: "Sorry, I couldn't connect to the server. Please ensure the backend is running." } : m);
     }
+  }
+
+  async function resetSession() {
+    try {
+      if (!sessionId) return;
+      await fetch('http://127.0.0.1:8000/session/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    } catch (e) {
+      console.error('Failed to reset session on server', e);
+    }
+
+    try {
+      localStorage.removeItem('sessionId');
+    } catch (e) {}
+
+    // generate a new session id locally and clear UI messages
+    try {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        sessionId = crypto.randomUUID();
+      } else {
+        sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      }
+      localStorage.setItem('sessionId', sessionId);
+      try { setCookie('sessionId', sessionId); } catch (e) {}
+      try { deleteCookie('chat_history'); } catch (e) {}
+    } catch (e) {}
+
+    messages = [];
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -335,6 +431,7 @@
                   currentDestLang={currentDestLang}
                   onLanguageChange={(languages) => currentDestLang = languages}
                 />
+                <button on:click={resetSession} class="ml-2 px-3 py-1 bg-[#1a1a1f] hover:bg-[#27272a] text-gray-300 rounded-lg text-[13px] border border-[#27272a]">Reset Session</button>
                 
               </div>
             </div>
